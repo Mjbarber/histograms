@@ -1,0 +1,109 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.patheffects as pa
+from matplotlib.ticker import FuncFormatter
+import os
+from google.colab import drive
+drive.mount('/content/gdrive')
+
+%matplotlib inline
+
+code = df_raw.iloc[:, 4]
+title = df_raw.iloc[:, 19]
+resul = df_raw.iloc[:, [8, 10, 12, 14, 16]]
+obj = df_raw.iloc[:, [7, 9, 11, 13, 15]]
+df = pd.concat([code, title, resul, obj], axis = 1)
+df.columns= ['Código', 'Indicador', 'Resultado 2015-16', 'Resultado 2016-17', 'Resultado 2017-18', 'Resultado 2018-19', 'Resultado 2019-20',
+             'Objetivo 2015-16', 'Objetivo 2016-17', 'Objetivo 2017-18', 'Objetivo 2018-19', 'Objetivo 2019-20']
+df.fillna(0, inplace = True)
+
+
+#función para dividir un texto en renglones de n caracteres máximo
+def get_title(st, n):
+    
+    lista = st.split(' ')
+    res = ''
+    line_number = 1
+    for i in range(len(lista)):
+        res = res + lista[i]
+        if i + 1 < len(lista):
+            if len(res) + len(lista[i + 1]) > n * line_number:
+                res = res + '\n'
+                line_number += 1
+            else:
+                res = res + ' '
+    return res 
+    
+    def graf(fila_excel, data):
+    
+    plt.style.use("seaborn")
+#figura
+    fig, ax = plt.subplots(figsize = (8.5,4))
+
+#asignación de valores para el título del gráfico (en renglones de 95 caracteres máximo), 
+#cantidades a representar y etiquetas del eje X
+    codigo = data[0]
+    titulo = get_title(data[1], 95)
+    resultados = data[2: 7]
+    objetivos = data[7: 12]
+    etiq_X = ['2015-16', '2016-17', '2017-18', '2018-19', '2019-20']
+    #etiq_X = data.index[1: 5]
+
+#gráfica de barras con los resultados
+    barplot = ax.bar(range(len(resultados)), resultados, width = 0.5, align = "center", 
+          tick_label = etiq_X, label = 'Resultados',
+          color = "#FF4040", edgecolor = "#2A3132", linewidth = 2, path_effects = [pa.Normal(),pa.SimpleLineShadow()])
+
+#puntos de los objetivos
+    pointsplot = ax.plot(objetivos, linewidth = 0, marker = 'o', label = 'Objetivos', color = '#191970', markersize = 10,
+            alpha = 0.8, path_effects = [pa.SimpleLineShadow(),pa.Normal()])
+        
+#texto sobre las barras, omitiendo los valores nulos
+    for i, v in enumerate(resultados):
+        if  v > 0:
+            ax.text(i - 4*len(str(v))/100, v + max(resultados)/40, str(v), color='#5B5B5B', fontsize = 14, 
+              fontname = "serif", fontweight=500)
+
+#etiquetas
+    ax.set_title(titulo, fontsize = 14, fontstyle = "italic", weight = 500, pad = 15)
+    #ax.set_ylabel("Porcentaje", fontsize = 14, fontstyle = "italic")
+    #ax.set_xlabel("Curso", fontsize = 14, fontstyle = "italic")
+
+#leyenda
+    ax.legend(borderaxespad=0.1, loc = 'center right', bbox_to_anchor=[1.2, 0.5])
+
+#ticks
+    ax.set_xticklabels(ax.get_xticklabels(), fontsize = 14, fontname = "serif")
+    ax.set_yticklabels(ax.get_yticks(), fontsize = 14, fontname = "serif")
+    
+    def formato(x, pos):
+        return "%.0f" % (x)
+
+    ax.yaxis.set_major_formatter(FuncFormatter(formato))
+
+    #plt.show()
+
+#guarda las gráficas en un directorio de Drive
+    #pic_path = os.path.join(os.getcwd(), 'pics') #para guardarlo en la sesión de colab
+    pic_path = '/content/gdrive/My Drive/pics'
+    if not os.path.exists(pic_path):
+       os.mkdir(pic_path)
+    #limpiar título para no dar problema para usarlo como nombre de archivo
+    forbidden_chars = {'/': '-', '\n': ' '}
+    for k, v in forbidden_chars.items():
+        titulo = titulo.replace(k, v)
+
+    pic_path = os.path.join(pic_path, 'Fila ' + str(fila_excel + 2).zfill(3) + \
+                            ' - ' + codigo + ' - ' + titulo + '.png')
+    plt.savefig(pic_path, bbox_inches = 'tight', dpi = 300)
+    print(pic_path)
+    plt.close()
+
+
+#stop = 0
+for index, row in df.iterrows():
+  graf(index, row)
+#  stop +=1
+#  if stop == 20: break
+print('Done')
